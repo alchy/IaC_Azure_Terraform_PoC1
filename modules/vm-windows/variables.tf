@@ -52,7 +52,7 @@ variable "vm_size" {
 variable "admin_username" {
   description = "Admin username"
   type = string
-  default = "vzpazure"
+  default = "administrator"
 }
 
 variable "admin_password" {

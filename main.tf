@@ -110,8 +110,8 @@ module "linux-vm1" {
   subnet_id               = module.network-subnets.spoke1_common_subnet_id
 
   vm_size                 = "Standard_B2s"
-  admin_username          = "vzpadmin"
-  admin_password          = "cos_ifneo1s*clAF"    # spravovat v Key Vault
+  admin_username          = var.admin_username
+  admin_password          = var.admin_password    # spravovat v Key Vault
 
   os_disk_size            = 64
   #availability_zone   = "1"
@@ -131,8 +131,8 @@ module "linux-vm2" {
   subnet_id               = module.network-subnets.spoke2_common_subnet_id
 
   vm_size                 = "Standard_B2s"
-  admin_username          = "vzpadmin"
-  admin_password          = "cos_ifneo1s*clAF"    # spravovat v Key Vault
+  admin_username          = var.admin_username
+  admin_password          = var.admin_password    # spravovat v Key Vault
 
   #availability_zone   = "1"
 }
