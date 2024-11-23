@@ -40,7 +40,7 @@ resource "azurerm_network_interface" "vm-windows-nic" {
   ip_configuration {
     name                          = "internal"
     subnet_id                     = var.subnet_id
-    private_ip_address_allocation = var.ip_address_reservation
+    private_ip_address_allocation = "Dynamic"
     public_ip_address_id          = azurerm_public_ip.vm-windows-public-ip.id
   }
 }

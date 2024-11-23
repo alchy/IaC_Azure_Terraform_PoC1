@@ -1,7 +1,3 @@
-variable "location" {
-  default = "westeurope"
-}
-
 variable "tags" {
   default = {
     user      = "jindra"

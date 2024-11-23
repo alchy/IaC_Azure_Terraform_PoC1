@@ -21,3 +21,8 @@ $Env:ARM_TENANT_ID = "*****"        # tenantId - z portálu
 ###
 $env:TF_VAR_admin_username = "*****"
 $env:TF_VAR_admin_password = "*****"
+
+###
+### naming module (context of "terraform-azurerm-naming")
+###
+https://github.com/Azure/terraform-azurerm-naming/tree/master

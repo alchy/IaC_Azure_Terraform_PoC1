@@ -14,6 +14,20 @@ provider "azurerm" {
   features {}
 }
 
+#
+# set context: datacenters
+#
+module "datacenters" {
+  source = "./globals/datacenters" 
+}
+
+#
+# set context: environment
+#
+module "environment" {
+  source = "./globals/environment" 
+}
+
 
 #
 # deploy
@@ -25,9 +39,15 @@ module "resource-groups" {
   # globální proměnné ze souboru "./variables.tf"
   rg_prefix = var.rg_prefix
   rg_env    = var.rg_env
-  location  = var.location
+  location  = module.datacenters.primary.location
   tags      = var.tags
+
+  resource_groups = {
+    spoke3 = {location = module.datacenters.primary.location}
+    spoke4 = {location = module.datacenters.primary.location}
+  }
 }
+
 
 module "network" {
   source = "./modules/network"
@@ -35,7 +55,7 @@ module "network" {
   # globální proměnné ze souboru "./variables.tf"
   rg_prefix = var.rg_prefix
   rg_env    = var.rg_env
-  location  = var.location
+  location  = module.datacenters.primary.location
   tags      = var.tags
 
   # Předání hodnot z výstupů modulu "resource-groups"
@@ -49,14 +69,13 @@ module "network" {
   spoke2_location            = module.resource-groups.spoke2_resource_group.location
 }
 
-
 module "network-subnets" {
   source = "./modules/network-subnets"
 
   # globální proměnné ze souboru "./variables.tf"
   rg_prefix           = var.rg_prefix
   rg_env              = var.rg_env
-  location            = var.location
+  location            = module.datacenters.primary.location
 
   # Předání hodnot z výstupů modulu "resource-groups"
   hub_resource_group_name    = module.resource-groups.hub_resource_group.name

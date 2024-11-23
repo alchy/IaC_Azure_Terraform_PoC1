@@ -21,3 +21,10 @@ variable "rg_env" {
   description = "Kompozit pro název prostředí (např. DEV, PROD)"
   type        = string
 }
+
+variable "resource_groups" {
+  description = "Iterater for map of resource groups with their parameters"
+  type  = map(object({
+    location = string
+  }))
+}
