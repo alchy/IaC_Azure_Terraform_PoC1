@@ -24,27 +24,40 @@ module "datacenters" {
 #
 # set context: environment
 #
-module "environment" {
+module "env" {
   source = "./globals/environment" 
+  project = ""
+  environment = "dev3"
 }
 
+
+#
+# set naming context
+#
+module "naming" {
+  source = "../terraform-azurerm-naming" 
+  prefix                 = [var.rg_prefix]
+  suffix                 = ["RESOURCE-NAME", module.env.project, module.env.environment, module.datacenters.primary.loc]
+}
 
 #
 # deploy
 #
 
 module "resource-groups" {
+
   source    = "./modules/resource-groups"
   
-  # globální proměnné ze souboru "./variables.tf"
-  rg_prefix = var.rg_prefix
-  rg_env    = var.rg_env
+  # globální proměnné
   location  = module.datacenters.primary.location
   tags      = var.tags
 
   resource_groups = {
-    spoke3 = {location = module.datacenters.primary.location}
-    spoke4 = {location = module.datacenters.primary.location}
+    hub    = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
+    spoke1 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
+    spoke2 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
+    spoke3 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
+    spoke4 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
   }
 }
 
@@ -59,15 +72,16 @@ module "network" {
   tags      = var.tags
 
   # Předání hodnot z výstupů modulu "resource-groups"
-  hub_resource_group_name    = module.resource-groups.hub_resource_group.name
-  hub_location               = module.resource-groups.hub_resource_group.location
+  hub_resource_group_name    = module.resource-groups.rg.hub.name
+  hub_location               = module.resource-groups.rg.hub.location
   
-  spoke1_resource_group_name = module.resource-groups.spoke1_resource_group.name
-  spoke1_location            = module.resource-groups.spoke1_resource_group.location
+  spoke1_resource_group_name = module.resource-groups.rg.spoke1.name
+  spoke1_location            = module.resource-groups.rg.spoke1.location
   
-  spoke2_resource_group_name = module.resource-groups.spoke2_resource_group.name
-  spoke2_location            = module.resource-groups.spoke2_resource_group.location
+  spoke2_resource_group_name = module.resource-groups.rg.spoke2.name
+  spoke2_location            = module.resource-groups.rg.spoke2.location
 }
+
 
 module "network-subnets" {
   source = "./modules/network-subnets"
@@ -78,16 +92,15 @@ module "network-subnets" {
   location            = module.datacenters.primary.location
 
   # Předání hodnot z výstupů modulu "resource-groups"
-  hub_resource_group_name    = module.resource-groups.hub_resource_group.name
-  spoke1_resource_group_name = module.resource-groups.spoke1_resource_group.name
-  spoke2_resource_group_name = module.resource-groups.spoke2_resource_group.name
+  hub_resource_group_name    = module.resource-groups.rg.hub.name
+  spoke1_resource_group_name = module.resource-groups.rg.spoke1.name
+  spoke2_resource_group_name = module.resource-groups.rg.spoke2.name
   
   # Předání hodnot z výstupů modulu "network"
   hub_vnet_name    = module.network.hub_vnet.name
   spoke1_vnet_name = module.network.spoke1_vnet.name
   spoke2_vnet_name = module.network.spoke2_vnet.name
 }
-
 
 module "network-subnet-peerings" {
   source          = "./modules/network-subnets-peerings"
@@ -97,9 +110,9 @@ module "network-subnet-peerings" {
   rg_env              = var.rg_env
  
   # Předání hodnot z výstupů modulu "resource-groups"
-  hub_resource_group_name    = module.resource-groups.hub_resource_group.name
-  spoke1_resource_group_name = module.resource-groups.spoke1_resource_group.name
-  spoke2_resource_group_name = module.resource-groups.spoke2_resource_group.name
+  hub_resource_group_name    = module.resource-groups.rg.hub.name
+  spoke1_resource_group_name = module.resource-groups.rg.spoke1.name
+  spoke2_resource_group_name = module.resource-groups.rg.spoke2.name
 
   # Předání hodnot z výstupů modulu "network"
   hub_vnet_name    = module.network.hub_vnet.name
@@ -111,6 +124,7 @@ module "network-subnet-peerings" {
   spoke2_vnet_name = module.network.spoke2_vnet.name
   spoke2_vnet_id   = module.network.spoke2_vnet.id
 }
+
 
 #
 # VM RHEL9/ROCKY9/BuBuNTU in SPOKE(s)
@@ -124,8 +138,8 @@ module "linux-vm1" {
   rg_env                  = var.rg_env
 
   vm_name                 = "vm1"
-  resource_group_name     =  module.resource-groups.spoke1_resource_group.name
-  resource_group_location =  module.resource-groups.spoke1_resource_group.location
+  resource_group_name     = module.resource-groups.rg.spoke1.name
+  resource_group_location = module.resource-groups.rg.spoke1.location
   subnet_id               = module.network-subnets.spoke1_common_subnet_id
 
   vm_size                 = "Standard_B2s"
@@ -145,8 +159,8 @@ module "linux-vm2" {
   rg_env                  = var.rg_env
 
   vm_name                 = "vm2"
-  resource_group_name     = module.resource-groups.spoke2_resource_group.name
-  resource_group_location = module.resource-groups.spoke2_resource_group.location
+  resource_group_name     = module.resource-groups.rg.spoke2.name
+  resource_group_location = module.resource-groups.rg.spoke2.location
   subnet_id               = module.network-subnets.spoke2_common_subnet_id
 
   vm_size                 = "Standard_B2s"
@@ -168,8 +182,8 @@ module "windows-vm1" {
   rg_env                  = var.rg_env
 
   vm_name                 = "windows1"
-  resource_group_name     = module.resource-groups.hub_resource_group.name
-  resource_group_location = module.resource-groups.hub_resource_group.location
+  resource_group_name     = module.resource-groups.rg.hub.name
+  resource_group_location = module.resource-groups.rg.hub.location
   subnet_id               = module.network-subnets.hub_management_subnet_id
 
   vm_size                 = "Standard_B2s"
@@ -187,14 +201,14 @@ module "windows-vm1" {
 
 resource "azurerm_private_dns_zone" "private-dns-zone" {
   name                = "${var.rg_env}.az.point4.cz"
-  resource_group_name = module.resource-groups.hub_resource_group.name
+  resource_group_name = module.resource-groups.rg.hub.name
 }
 
 # Připojení hub VNet do DNS zóny
 resource "azurerm_private_dns_zone_virtual_network_link" "hub-link" {
   name                   = "${var.rg_prefix}-${var.rg_env}-hub-vnet-link"
   private_dns_zone_name  = azurerm_private_dns_zone.private-dns-zone.name                               # Název DNS zóny
-  resource_group_name    = module.resource-groups.hub_resource_group.name                               # Název resource group, kde je DNS zóna
+  resource_group_name    = module.resource-groups.rg.hub.name                               # Název resource group, kde je DNS zóna
   virtual_network_id     = module.network.hub_vnet.id                                                   # ID hub VNet
   registration_enabled   = true                                                                         # Povolit automatickou registraci DNS záznamů pro připojené VM
   depends_on = [azurerm_private_dns_zone.private-dns-zone]  # Zajištění pořadí
@@ -204,7 +218,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "hub-link" {
 resource "azurerm_private_dns_zone_virtual_network_link" "spoke1-link" {
   name                   = "${var.rg_prefix}-${var.rg_env}-spoke1-vnet-link"
   private_dns_zone_name  = azurerm_private_dns_zone.private-dns-zone.name                               # Název DNS zóny
-  resource_group_name    = module.resource-groups.hub_resource_group.name                               # Název resource group, kde je DNS zóna
+  resource_group_name    = module.resource-groups.rg.hub.name                               # Název resource group, kde je DNS zóna
   virtual_network_id     = module.network.spoke1_vnet.id                                                # ID hub VNet
   registration_enabled   = true                                                                         # Povolit automatickou registraci DNS záznamů pro připojené VM
   depends_on = [azurerm_private_dns_zone.private-dns-zone]                                              # Zajištění pořadí
@@ -214,8 +228,14 @@ resource "azurerm_private_dns_zone_virtual_network_link" "spoke1-link" {
 resource "azurerm_private_dns_zone_virtual_network_link" "spoke2-link" {
   name                   = "${var.rg_prefix}-${var.rg_env}-spoke2-vnet-link"
   private_dns_zone_name  = azurerm_private_dns_zone.private-dns-zone.name                               # Název DNS zóny
-  resource_group_name    = module.resource-groups.hub_resource_group.name                               # Název resource group, kde je DNS zóna
+  resource_group_name    = module.resource-groups.rg.hub.name                               # Název resource group, kde je DNS zóna
   virtual_network_id     = module.network.spoke2_vnet.id                                                # ID hub VNet
   registration_enabled   = true                                                                         # Povolit automatickou registraci DNS záznamů pro připojené VM
   depends_on = [azurerm_private_dns_zone.private-dns-zone]                                              # Zajištění pořadí
 }
+
+#
+# virtual wan
+#
+
+# Virtual WAN
