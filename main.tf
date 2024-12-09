@@ -61,11 +61,11 @@ module "resource-groups" {
   tags      = var.tags
 
   resource_groups = {
-    hub    = {location = module.datacenters.primary.location, name = module.naming_pdc.resource_group.name}
-    spoke1 = {location = module.datacenters.primary.location, name = module.naming_pdc.resource_group.name}
-    spoke2 = {location = module.datacenters.primary.location, name = module.naming_pdc.resource_group.name}
-    spoke3 = {location = module.datacenters.primary.location, name = module.naming_sdc.resource_group.name}
-    spoke4 = {location = module.datacenters.primary.location, name = module.naming_sdc.resource_group.name}
+    hub    = {location = module.datacenters.primary.location,   name = module.naming_pdc.resource_group.name}
+    spoke1 = {location = module.datacenters.primary.location,   name = module.naming_pdc.resource_group.name}
+    spoke2 = {location = module.datacenters.secondary.location, name = module.naming_sdc.resource_group.name}
+    spoke3 = {location = module.datacenters.primary.location,   name = module.naming_pdc.resource_group.name}
+    spoke4 = {location = module.datacenters.secondary.location, name = module.naming_sdc.resource_group.name}
   }
 }
 
