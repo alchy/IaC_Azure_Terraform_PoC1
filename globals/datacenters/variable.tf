@@ -23,9 +23,9 @@ variable "datacenters" {
       loc      = "gwc"
     }
     secondary = {
-      name     = "Sweden"
-      location = "sweden"
-      loc      = "swe"
+      name     = "Sweden Central"
+      location = "swedencentral"
+      loc      = "swC"
     }
   }
 }

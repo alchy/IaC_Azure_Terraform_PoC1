@@ -34,10 +34,18 @@ module "env" {
 #
 # set naming context
 #
-module "naming" {
+module "naming_pdc" {
   source = "../terraform-azurerm-naming" 
   prefix                 = [var.rg_prefix]
-  suffix                 = ["RESOURCE-NAME", module.env.project, module.env.environment, module.datacenters.primary.loc]
+  suffix                 = ["RESOURCE-NAME", module.env.project, 
+                            module.env.environment, module.datacenters.primary.loc]
+}
+
+module "naming_sdc" {
+  source = "../terraform-azurerm-naming" 
+  prefix                 = [var.rg_prefix]
+  suffix                 = ["RESOURCE-NAME", module.env.project, 
+                            module.env.environment, module.datacenters.secondary.loc]
 }
 
 #
@@ -53,11 +61,11 @@ module "resource-groups" {
   tags      = var.tags
 
   resource_groups = {
-    hub    = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
-    spoke1 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
-    spoke2 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
-    spoke3 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
-    spoke4 = {location = module.datacenters.primary.location, name = module.naming.resource_group.name}
+    hub    = {location = module.datacenters.primary.location, name = module.naming_pdc.resource_group.name}
+    spoke1 = {location = module.datacenters.primary.location, name = module.naming_pdc.resource_group.name}
+    spoke2 = {location = module.datacenters.primary.location, name = module.naming_pdc.resource_group.name}
+    spoke3 = {location = module.datacenters.primary.location, name = module.naming_sdc.resource_group.name}
+    spoke4 = {location = module.datacenters.primary.location, name = module.naming_sdc.resource_group.name}
   }
 }
 
@@ -236,6 +244,27 @@ resource "azurerm_private_dns_zone_virtual_network_link" "spoke2-link" {
 
 #
 # virtual wan
-#
+# https://jakewalsh.co.uk/deploying-azure-virtual-wan-using-terraform/
 
-# Virtual WAN
+# vwan
+resource "azurerm_virtual_wan" "vwan" {
+  name                = "vWAN"
+  resource_group_name = module.resource-groups.rg.hub.name
+  location            = module.resource-groups.rg.hub.location
+}
+
+# Virtual WAN Hubs
+resource "azurerm_virtual_hub" "region1-vhub1" {
+  name                = "hub-${module.datacenters.primary.loc}-vWAN"
+  resource_group_name = module.resource-groups.rg.hub.name
+  location            = module.datacenters.primary.location
+  virtual_wan_id      = azurerm_virtual_wan.vwan.id
+  address_prefix      = "10.100.0.0/16"
+}
+resource "azurerm_virtual_hub" "region2-vhub1" {
+  name                = "hub-${module.datacenters.secondary.loc}-vWAN"
+  resource_group_name = module.resource-groups.rg.hub.name
+  location            = module.datacenters.secondary.location
+  virtual_wan_id      = azurerm_virtual_wan.vwan.id
+  address_prefix      = "10.101.0.0/16"
+}
